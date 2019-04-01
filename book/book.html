@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <meta charset="utf8">
+</head>
+
+<body>
+    <div id="search">
+    <div id="options">
+        <input type="text" id="category" placeholder="类别"> 
+        <input type="text" id="title" placeholder="书名">
+        <input type="text" id="press" placeholder="出版社">
+        <input type="number" id="year_low" min = "0" max = "3000" placeholder="年份下限">
+        <input type="number" id="year_high" min = "0" max = "3000" placeholder="年份上限">
+        <input type="number" id="price_low"  step = "0.01" placeholder="价格下限">
+        <input type="number" id="price_high" step = "0.01" placeholder="价格上限">
+        <button @click="lookup">查询</button>
+        <select id = "order">
+            <option value = "title">书名</option>
+            <option value = "category">类别</option>
+            <option value = "price">价格</option>
+            <option value = "year">年份</option>
+            <option value = "press">出版社</option>
+            <option value = "total">库存</option>
+        </select>
+    </div>
+
+    <div id="result" v-if="show">
+        <table border="1">
+            <tr>
+                <th>ID</th>
+                <th>类别</th>
+                <th>书名</th>
+                <th>出版社</th>
+                <th>年份</th>
+                <th>作者</th>
+                <th>价格</th>
+                <th>数量</th>
+            </tr>
+            <tr v-for="book in books">
+                <th>{{ book.bno}}</th>
+                <th>{{ book.category}}</th>
+                <th>{{ book.title}}</th>
+                <th>{{ book.press }}</th>
+                <th>{{ book.year }}</th>
+                <th>{{ book.author }}</th>
+                <th>{{ book.price }}</th>
+                <th>{{ book.total }}</th>
+            </tr>
+        </table>
+    </div>
+    </div>
+</body>
+
+<script>
+    let main_window = new Vue({
+        el : "#search",
+        data :{
+            books : [],
+            show : false
+        },
+        methods : {
+            lookup : function(){
+                this.show = true
+                let request = new XMLHttpRequest()
+                request.onreadystatechange = () => { 
+                    if(request.readyState == 4)
+                    {
+                        let data = JSON.parse(request.responseText)
+                        this.books = data.returnData 
+                    }
+                }
+
+                let cat = document.getElementById("category").value
+                let yl = document.getElementById("year_low").value
+                let yr = document.getElementById("year_high").value
+                let pre = document.getElementById("press").value
+                let tit = document.getElementById("title").value
+                let pl = document.getElementById("price_low").value
+                let pr = document.getElementById("price_high").value
+                let ord = document.getElementById("order").value
+
+                let condition = {
+                    category : cat,
+                    press : pre,
+                    title : tit,
+                    price_low : pl,
+                    price_high : pr,
+                    year_low : yl,
+                    year_high :yr,
+                    order : ord ? ord : "title"
+                }
+                console.log(condition)
+                request.open("POST", "/book/lookup",true)
+                request.send(JSON.stringify(condition))
+            }
+        }
+    })
+</script>
