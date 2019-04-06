@@ -13,10 +13,12 @@ let connection = mysql.createConnection({
 app.use(bodyParser.urlencoded({ extended: false }))
 
 let authority = false
+// main page
 app.get("/",(req, res) => {
     res.sendFile(__dirname + "/index.html")
 })
 
+// manager page
 app.get("/manager.html", function(req, res){
     if(authority)
         res.sendFile(__dirname + '/manager/manager.html')
@@ -24,9 +26,6 @@ app.get("/manager.html", function(req, res){
     authority = false
 })
 
-app.get('/book', function(req, res){
-    res.sendFile(__dirname + '/book/book.html')
-})
 
 app.post("/managerLogin", (req,res) => {
     req.on('data', function(data)
@@ -49,6 +48,7 @@ app.post("/managerLogin", (req,res) => {
     })
 })
 
+// borrow page
 app.get("/borrow", function(req,res){
     let id = req.query
     let stringify = (str) => "\'" + str + "\'"
@@ -64,11 +64,47 @@ app.get("/borrow", function(req,res){
     })
 })
 
+app.post("/borrow/lookup", function(req, res){
+    req.on('data', function(data){
+        data = JSON.parse(data)
+        let stringfy = str => "\'" + str + "\'"
+        let sqlquery = "select bno, category, title, press, year, author, price, total\
+        from book natural join borrow\
+        where cno=" + stringfy(data.id)
+        connection.query(sqlquery, function(err, result){
+            res.send(JSON.stringify({
+                returnData : result
+            }))            
+        })
+
+    })
+})
+
+app.post("/borrow/return", function(req, res){
+    req.on('data', function(data){
+        data = JSON.parse(data)
+        let stringfy = str => "\'" + str + "\'"
+
+        let delete_borrow = 'delete from borrow where cno=' + stringfy(data.cno) + " and bno=" + stringfy(data.bno)
+        let updata_book = 'update book set total = total + 1 where bno=' + stringfy(data.bno)
+        connection.query(delete_borrow, function(err, result){
+            connection.query(updata_book, function(err, result){
+                res.send("Update completed")
+            })
+        })
+    })
+})
+// The book page
+app.get('/book', function(req, res){
+    res.sendFile(__dirname + '/book/book.html')
+})
+
 app.post('/book/lookup', function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
         let sql = "select * from book";
         let stringfy = str => "\'" + str + "\'"
+        // Select those valid conditions
         if(data.category || data.press || data.title || data.price_low || data.year_low || data.year_high || data.price_high)
         {
             sql += " where "

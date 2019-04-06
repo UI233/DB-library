@@ -38,14 +38,14 @@
                 <th>数量</th>
             </tr>
             <tr v-for="book in books">
-                <th>{{ book.bno}}</th>
-                <th>{{ book.category}}</th>
-                <th>{{ book.title}}</th>
-                <th>{{ book.press }}</th>
-                <th>{{ book.year }}</th>
-                <th>{{ book.author }}</th>
-                <th>{{ book.price }}</th>
-                <th>{{ book.total }}</th>
+                <th class = 'bno'>{{ book.bno}}</th>
+                <th class = 'category'>{{ book.category}}</th>
+                <th class = 'title'>{{ book.title}}</th>
+                <th class = 'press'>{{ book.press }}</th>
+                <th class= 'year'>{{ book.year }}</th>
+                <th class = 'author'>{{ book.author }}</th>
+                <th class = 'price'>{{ book.price }}</th>
+                <th class = 'total'>{{ book.total }}</th>
             </tr>
         </table>
     </div>
@@ -53,7 +53,8 @@
 </body>
 
 <script>
-    let main_window = new Vue({
+    
+      let main_window = new Vue({
         el : "#search",
         data :{
             books : [],
