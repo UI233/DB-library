@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UI&HTT的图书管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <!--for the problem of fixed navbar-->
+    <style>
+    body 
+    {  
+        padding-top: 70px; padding-bottom: 70px;
+    }
+    </style>
+  </head>
+
+  <body>
+    <!-- head-->
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+            <a class="navbar-brand" href="#">UI&HTT的图书管理系统</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="./searchBook.html">图书查询</a></li>
+                <li><a href="./addBook.html">图书入库</a></li>
+                <li><a href="./cardManagement.html">借书证管理</a></li>
+                <li><a href="./borrowReturn.html">借还记录</a></li>
+            </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <div class="row">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">查询条件</h3>
+                </div>
+                <!-- search conditions-->
+                <div class="panel-body">
+                    <div id="search">
+                        <div id="options">
+                            <div class="container">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <input class="form-control" type="text" id="category" placeholder="类别"> 
+                                        <input class="form-control" type="text" id="title" placeholder="书名">
+                                        <input class="form-control" type="text" id="press" placeholder="出版社">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input class="form-control" type="number" id="year_low" min = "0" max = "3000" placeholder="年份下限">
+                                        <input class="form-control" type="number" id="year_high" min = "0" max = "3000" placeholder="年份上限">
+                                       
+                                         <!--升序降序？-->
+                                         <div class="form-group">
+                                            <select id = "order" class="form-control">
+                                                    <option value = "title">书名</option>
+                                                    <option value = "category">类别</option>
+                                                    <option value = "price">价格</option>
+                                                    <option value = "year">年份</option>
+                                                    <option value = "press">出版社</option>
+                                                    <option value = "total">库存</option>
+                                            </select>
+                                         </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <input class="form-control" type="number" id="price_low"  step = "0.01" placeholder="价格下限">
+                                        <input class="form-control" type="number" id="price_high" step = "0.01" placeholder="价格上限">
+                                        <select  class="form-control" id = "orderofresult">
+                                                <option value = "desc">降序</option>
+                                                <option value = "asc">升序</option>
+                                        </select>
+                                        <p></p>
+                                        <div class="col-md-8"></div>
+                                        <button class="btn btn-primary btn-lg" >查询结果</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">查询结果</h3>
+                </div>
+                <!-- search conditions-->
+                <div class="panel-body">
+                </div>
+                   <div class="container" id="result" v-if="show">
+                        <table class="table table-striped">
+                            <tr>
+                                <th>ID</th>
+                                <th>类别</th>
+                                <th>书名</th>
+                                <th>出版社</th>
+                                <th>年份</th>
+                                <th>作者</th>
+                                <th>价格</th>
+                                <th>数量</th>
+                            </tr>
+                            <tr v-for="book in books">
+                                <th class = 'bno'>{{ book.bno}}</th>
+                                <th class = 'category'>{{ book.category}}</th>
+                                <th class = 'title'>{{ book.title}}</th>
+                                <th class = 'press'>{{ book.press }}</th>
+                                <th class= 'year'>{{ book.year }}</th>
+                                <th class = 'author'>{{ book.author }}</th>
+                                <th class = 'price'>{{ book.price }}</th>
+                                <th class = 'total'>{{ book.total }}</th>
+                            </tr>
+                        </table>
+                    </div>
+            </div>
+        </div>
+    </div>       
+</body>
+</html>
+<script>
+      let main_window = new Vue({
+        el : "#search",
+        data :{
+            books : [],
+            show : false
+        },
+        methods : {
+            lookup : function(){
+                this.show = true
+                let request = new XMLHttpRequest()
+                request.onreadystatechange = () => { 
+                    if(request.readyState == 4)
+                    {
+                        let data = JSON.parse(request.responseText)
+                        this.books = data.returnData 
+                    }
+                }
+
+                let cat = document.getElementById("category").value
+                let yl = document.getElementById("year_low").value
+                let yr = document.getElementById("year_high").value
+                let pre = document.getElementById("press").value
+                let tit = document.getElementById("title").value
+                let pl = document.getElementById("price_low").value
+                let pr = document.getElementById("price_high").value
+                let ord = document.getElementById("order").value
+
+                let condition = {
+                    category : cat,
+                    press : pre,
+                    title : tit,
+                    price_low : pl,
+                    price_high : pr,
+                    year_low : yl,
+                    year_high :yr,
+                    order : ord ? ord : "title"
+                }
+                console.log(condition)
+                request.open("POST", "/book/lookup",true)
+                request.send(JSON.stringify(condition))
+            }
+        }
+    })
+</script>
