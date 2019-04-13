@@ -14,6 +14,12 @@
     {  
         padding-top: 70px; padding-bottom: 70px;
     }
+    input
+    {
+        margin-top:15px;
+        margin-left:30px;
+        margin-right:30px;
+    }
     </style>
   </head>
   <body>
@@ -41,7 +47,54 @@
                     </div>
                     <!-- search conditions-->
                     <div class="panel-body">
-                            
+                        <div class="container">
+                            <div class="row">
+                                 <!--单本入库-->
+                                <div class="col-md-6">
+                                    <div class="page-header">
+                                        <h4>单本入库</h4>
+                                    </div>
+                                    <div class="panel panel-default">
+                                        <div class="panel-body">
+                                            <h4>输入图书信息：</h4>
+                                            <div class="col-md-8">
+                                                <!--入库编号-->
+                                                <div class="form-group">
+                                                    <input class="form-control" type="text" id="bno" placeholder="书号"> 
+                                                    <input class="form-control" type="text" id="category" placeholder="类别">
+                                                    <input class="form-control" type="text" id="title" placeholder="书名">
+                                                    <input class="form-control" type="text" id="press" placeholder="出版社"> 
+                                                    <input class="form-control" type="text" id="year" placeholder="年份">
+                                                    <input class="form-control" type="text" id="author" placeholder="作者">
+                                                    <input class="form-control" type="text" id="price" placeholder="价格">
+                                                    <input class="form-control" type="text" id="number" placeholder="数量">
+                                                </div>
+                                                <div class="col-md-4"></div>
+                                                <div class="col-md-4"><button class="btn btn-primary btn-lg">单本入库</button></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="page-header">
+                                        <h4>多本入库</h4>
+                                    </div>
+                                     <div class="panel panel-default">
+                                        <div class="panel-body">
+                                            <h4>上传JSON格式文件：</h4>
+                                            <small>{bno,category,title,press,year,author,price,number}</small>
+                                            <div class="col-md-8">
+                                                <!--上传文件-->
+                                                
+                                                <!--提交-->
+                                                <div class="col-md-4"></div>
+                                                <div class="col-md-4"><button class="btn btn-primary btn-lg">多本入库</button></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                    
             </div>
