@@ -28,6 +28,7 @@ function getDateString(){
     return year + '-' + month + '-' + day
 }
 
+// Convert the information of a book to a single SQL insert statement
 function getBookQueryString(obj){
     let stringify = str => '\'' + str + '\''
     return 'insert into book values(' + stringify(obj.bno) + ',' + stringify(obj.category) + ','
@@ -92,6 +93,7 @@ app.post('/manager/file_upload', function(req, res){
             connection.query(data.toString(), (err, result) => {
                if(err)
                {
+                    console.log(err)
                     res.send('Bad SQL')
                }
                 else res.send(JSON.stringify({
@@ -244,7 +246,7 @@ app.post('/card/add', function(req, res){
                 res.send('Update Failed')
                 console.log(err)
             }
-            else res.send('Update Complete')
+            else res.send('Update Completed')
          })
     })
 })
@@ -257,7 +259,7 @@ app.post('/card/delete', function(req, res){
         connection.query(query, function(err, result){
             if(err)
                 res.send('Update Failed')
-            else res.send('Update Complete')
+            else res.send('Update Completed')
         })
     })
 })

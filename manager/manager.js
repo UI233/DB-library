@@ -28,7 +28,7 @@ new Vue({
                 'category' : this.category
             }
 
-            if(!eval(this.bno))
+            if(!this.bno)
             {
                 alert('书号不能为空')
                 return ;
@@ -43,7 +43,16 @@ new Vue({
             let request = new XMLHttpRequest()
             request.onreadystatechange = () => {
                 if(request.readyState == 4)
+                {
+                    this.bno = ''
+                    this.title = ''
+                    this.year = ''
+                    this.total = ''
+                    this.price = ''
+                    this.author = ''
+                    this.category = ''
                     alert(request.responseText)
+                }
             }
 
             request.open('POST', './single')

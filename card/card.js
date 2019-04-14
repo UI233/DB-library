@@ -11,7 +11,15 @@ new Vue({
             let request = new XMLHttpRequest()
             request.onreadystatechange = ()=>{
                 if(request.readyState == 4)
+                {
+                    if(request.responseText == 'Update Completed')
+                    {
+                        this.cno = ''
+                        this.name = ''
+                        this.dept = ''
+                    }
                     alert(request.responseText)
+                }
             }
 
             request.open('POST', '/card/add', true)
@@ -41,7 +49,11 @@ new Vue({
             let request = new XMLHttpRequest()
             request.onreadystatechange = ()=>{
                 if(request.readyState == 4)
+                {
+                    if(request.responseText == 'Update Completed')
+                        this.dcno = ''
                     alert(request.responseText)
+                }
             }
 
             request.open('POST', '/card/delete', true)
