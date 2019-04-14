@@ -1,26 +1,49 @@
-let manage = require(__dirname + '/manager.js')
-
 let exp = require("express")
 let app = new exp()
 let mysql = require('mysql')
-let bodyParser = require('body-parser');
+let path = require('path')
+let formidable = require('formidable');
+let bodyParser = require('body-parser')
 let connection = mysql.createConnection({
     host : 'localhost',
     user : 'root',
     password : '121121ppxcs',
-    database : 'library'
+    database : 'project',
+    multipleStatements: true
 })
-app.use(bodyParser.urlencoded({ extended: false }))
+let fs = require('fs')
 
-let authority = false
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use('/manager', exp.static(__dirname + '/manager'));
+app.use('/borrow', exp.static(__dirname + '/borrow'));
+app.use('/book', exp.static(__dirname + '/book'));
+app.use('/card', exp.static(__dirname + '/card'));
+app.use('/image', exp.static(__dirname + '/image'));
+
+function getDateString(){
+    let myDate = new Date()
+    let year = myDate.getFullYear()
+    let month = myDate.getMonth() + 1
+    let day = myDate.getDate()
+    return year + '-' + month + '-' + day
+}
+
+function getBookQueryString(obj){
+    let stringify = str => '\'' + str + '\''
+    return 'insert into book values(' + stringify(obj.bno) + ',' + stringify(obj.category) + ','
+    + stringify(obj.title) + ',' + stringify(obj.press) + ',' + obj.year + ','  + stringify(obj.author) + ','
+    + obj.price + ',' + obj.total + ',' + '0)'
+}
+
+let admin_id = ''
 // main page
 app.get("/",(req, res) => {
-    res.sendFile(__dirname + "/index.html")
+    res.sendFile(__dirname + "/login.html")
 })
 
-// manager page
-app.get("/manager.html", function(req, res){
-    if(authority)
+// manager page(for updating books)
+app.get("/manager", function(req, res){
+    if(admin_id)
         res.sendFile(__dirname + '/manager/manager.html')
     else res.redirect('/')
     authority = false
@@ -32,71 +55,129 @@ app.post("/managerLogin", (req,res) => {
     {
         obj = JSON.parse(data)
         let query_command = "select * from manager where id = " + "\'" + obj.id + "\'" + " and password = " + "\'" + obj.password + "\' ;"
-        authority = false
+        admin_id = ''
         connection.query(query_command, function(err, result){
             if(err)
                 console.log(err.message)
-            console.log(result.length)
             if(result.length > 0)
             {
                 res.send('true')
-                authority = true
+                admin_id = obj.id
             }
             else res.send('false')
         })
+    })
+})
 
+app.post('/manager/single', function(req, res){
+    req.on('data', function(data){
+        let obj = JSON.parse(data)
+        connection.query(getBookQueryString(obj), function(err, result){
+            if(err)
+                res.send('Updata Failed')
+            else res.send('Update Completed')
+        }) 
+    })
+})
+
+// handle the request for upload the file to update it
+app.post('/manager/file_upload', function(req, res){
+   
+    let form = new formidable.IncomingForm()
+    
+    form.parse(req,function(err,fields,files){
+        fs.readFile(files.uploadJSON.path,function(err, data){
+            let sql = data.toString()
+
+            connection.query(data.toString(), (err, result) => {
+               if(err)
+               {
+                    res.send('Bad SQL')
+               }
+                else res.send(JSON.stringify({
+                    msg : 'Update Completed'
+                }))
+            })
+        })
     })
 })
 
 // borrow page
 app.get("/borrow", function(req,res){
-    let id = req.query
-    let stringify = (str) => "\'" + str + "\'"
-    let sql = "select cno from card where cno=" + stringify(id.id)
-    connection.query(sql,function(err, result){
-        if(err)
-            console.log(err)
-        if(result.length > 0)
-        {
-            res.sendFile(__dirname + "/borrow/borrow.html")
-        }
-        else res.send("false")
-    })
+    if(admin_id)
+        res.sendFile(__dirname + "/borrow/borrow.html")
+    else res.redirect('/')
 })
-
+// Handle the request for looking up the books that are borrowed by certain user
 app.post("/borrow/lookup", function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
         let stringfy = str => "\'" + str + "\'"
-        let sqlquery = "select bno, category, title, press, year, author, price, total\
-        from book natural join borrow\
-        where cno=" + stringfy(data.id)
+        let sqlquery = "select bno, title, cno, name, type, borrow_date\
+        from book natural join borrow natural join card\
+        where isnull(return_date) and cno=" + stringfy(data.id)
         connection.query(sqlquery, function(err, result){
             res.send(JSON.stringify({
                 returnData : result
             }))            
         })
-
     })
 })
-
+// Handle the request for returning the book
 app.post("/borrow/return", function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
         let stringfy = str => "\'" + str + "\'"
+       
+        let update_borrow = 'update borrow set return_date = ' + stringfy(getDateString()) + 
+         'where cno=' + stringfy(data.cno) + " and bno=" + stringfy(data.bno)
+        console.log(getDateString())
+        connection.query(update_borrow, function(err, result){
+            if(err)
+            {
+                res.send("Update Failed") 
+                console.log(err)
+            }
+            else res.send("Update Completed")
+        })
+    })
+})
+// Handle the request for borrowing the book
+app.post("/borrow/borrow", function(req, res){
+    req.on('data', function(data){
+        data = JSON.parse(data)
+        let stringfy = str => "\'" + str + "\'"
 
-        let delete_borrow = 'delete from borrow where cno=' + stringfy(data.cno) + " and bno=" + stringfy(data.bno)
-        let updata_book = 'update book set total = total + 1 where bno=' + stringfy(data.bno)
-        connection.query(delete_borrow, function(err, result){
-            connection.query(updata_book, function(err, result){
-                res.send("Update completed")
-            })
+        let query_book = 'select total from book where bno=' + stringfy(data.bno)
+        connection.query(query_book, function(err, result){
+            if(result.length == 0)
+                res.send('Book not exist')
+            else if(result[0].total > 0){
+                let update_borrow = 'insert into borrow values('  + stringfy(data.cno) + 
+                ',' + stringfy(data.bno) + ',' + stringfy(getDateString()) + ', null,' + stringfy(admin_id) +  ')'
+                connection.query(update_borrow,function(err, result){
+                    if(err)
+                        res.send("Update Failed")
+                    else res.send("Update completed")
+                })
+            }
+            else{
+                let query_return = 'select return_date from borrow where bno=' + stringfy(data.bno) + ' order by return_date desc'
+                connection.query(query_return, function(err, result){
+                    res.send(JSON.stringify({
+                        date : result[0]
+                    }
+                    ))
+                })
+            }
         })
     })
 })
 // The book page
 app.get('/book', function(req, res){
-    res.sendFile(__dirname + '/book/book.html')
+    if(admin_id)
+        res.sendFile(__dirname + '/book/book.html')
+    else res.redirect('/')
 })
 
 app.post('/book/lookup', function(req, res){
@@ -132,7 +213,7 @@ app.post('/book/lookup', function(req, res){
             }
         }
 
-        sql += " order by " + data.order + " desc"
+        sql += " order by " + data.order + ' ' + data.desc
         connection.query(sql, function(err, result){
             if(result.length > 50)
                 result = result.slice(0, 50)
@@ -143,5 +224,42 @@ app.post('/book/lookup', function(req, res){
         })
     }) 
 })
+// card page
+app.get('/card', function(req, res){
+    if(admin_id)
+        res.sendFile(__dirname + '/card/card.html')
+    else res.redirect('/')
+})
 
-app.listen(8000);
+app.post('/card/add', function(req, res){
+    req.on('data', function(data){
+        let card = JSON.parse(data)
+        let stringfy = str => "\'" + str + "\'"
+        let query = 'insert into card values(' +stringfy(card.cno) +',' + stringfy(card.name) + ',' + stringfy(card.dept)
+         + ',' + stringfy(card.type) + ')'
+
+         connection.query(query, function(err, result){
+            if(err)
+            {
+                res.send('Update Failed')
+                console.log(err)
+            }
+            else res.send('Update Complete')
+         })
+    })
+})
+
+app.post('/card/delete', function(req, res){
+    req.on('data', function(data){
+        let card = JSON.parse(data)
+        let stringfy = str => "\'" + str + "\'"
+        let query = 'delete from card where cno=' + stringfy(card.cno)
+        connection.query(query, function(err, result){
+            if(err)
+                res.send('Update Failed')
+            else res.send('Update Complete')
+        })
+    })
+})
+
+app.listen(8000)

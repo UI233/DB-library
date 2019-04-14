@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <!-- import CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+</head>
+<html>
+    <body id = 'background'>
+    <div id = 'app'>
+    <el-form ref="loginForm" :model="form" :rules="rules" label-width="80px" class="login-box">
+        <h3 class="login-title">欢迎登录</h3>
+        <el-form-item label="账号" prop="username">
+        <el-input type="text" placeholder="请输入账号" v-model="form.username"/>
+        </el-form-item>
+        <el-form-item label="密码" prop="password">
+        <el-input type="password" placeholder="请输入密码" v-model="form.password"/>
+        </el-form-item>
+        <el-form-item>
+        <el-button type="primary" v-on:click="log">登录</el-button>
+        </el-form-item>
+    </el-form>
+
+    <el-dialog
+        title="温馨提示"
+        :visible.sync="show"
+        width="30%"
+        :before-close="handleClose">
+        <span>请输入正确的账号和密码</span>
+        <span slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="show = false">确 定</el-button>
+        </span>
+    </el-dialog>
+    </div>
+    </body>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script>
+        let Main = new Vue({
+            el : "#app",
+            data : {
+                show : false,
+                form: {
+                    username: '',
+                    password: ''
+                }
+        },
+            methods : 
+            {
+                close : function(){
+                    this.show = false
+                },
+                log : function(){
+                    let user = this.form.username
+                    let passwd = this.form.password
+
+                    let xmlhttp = new XMLHttpRequest()
+                    xmlhttp.onreadystatechange = () => {
+                        if(xmlhttp.readyState == 4)
+                        {
+                            if(xmlhttp.responseText != 'false')
+                                window.location.href = "/manager"
+                            else this.show = true
+                        }
+                    }
+
+                    xmlhttp.open("POST", "/managerLogin", true)
+                    xmlhttp.send(JSON.stringify({
+                        id : user,
+                        password : passwd
+                    }))
+                }
+            }
+        }
+    )
+    </script>
+    <style lang="scss" scoped>
+            .login-box {
+              border: 1px solid #DCDFE6;
+              width: 350px;
+              margin: 180px auto;
+              padding: 35px 35px 15px 35px;
+              border-radius: 5px;
+              -webkit-border-radius: 5px;
+              -moz-border-radius: 5px;
+              box-shadow: 0 0 25px #909399;
+                background-color: rgba(255, 255, 255, 0.8);
+                margin-right: 20%;
+                margin-top : 20%;
+            }
+          
+            .login-title {
+              text-align: center;
+              margin: 0 auto 40px auto;
+              color: #303133;
+            }
+
+            body
+            {
+                background-size:100%100%;  
+                background:url(./image/index.jpg)  no-repeat; 
+            }
+    </style>
+</html>
