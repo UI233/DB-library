@@ -62,7 +62,7 @@ BEGIN
 DECLARE NUM INT;
 DECLARE MSGS VARCHAR(60);
 DECLARE TYPE enum('student','teacher');
-SET NUM=(SELECT COUNT(CNO) FROM BORROW WHERE CNO=NEW.CNO);
+SET NUM=(SELECT COUNT(CNO) FROM BORROW WHERE CNO=NEW.CNO AND return_date is NULL);
 /*这边没有起作用 不知道为什么 随后痛快地对老师和学生一视同仁:) 可能是判断的问题。*/
 IF NUM>5 THEN
     SELECT 'The number of book you borrow has a limit.' into @msgs;
