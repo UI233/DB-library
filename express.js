@@ -2,7 +2,7 @@ let exp = require("express")
 let app = new exp()
 let mysql = require('mysql')
 let path = require('path')
-let formidable = require('formidable');
+let formidable = require('formidable')
 let bodyParser = require('body-parser')
 let connection = mysql.createConnection({
     host : 'localhost',
@@ -12,13 +12,15 @@ let connection = mysql.createConnection({
     multipleStatements: true
 })
 let fs = require('fs')
+let cookies = new Set()
 
 app.use(bodyParser.urlencoded({ extended: false }))
-app.use('/manager', exp.static(__dirname + '/manager'));
-app.use('/borrow', exp.static(__dirname + '/borrow'));
-app.use('/book', exp.static(__dirname + '/book'));
-app.use('/card', exp.static(__dirname + '/card'));
-app.use('/image', exp.static(__dirname + '/image'));
+app.use('/manager', exp.static(__dirname + '/manager'))
+app.use('/borrow', exp.static(__dirname + '/borrow'))
+app.use('/book', exp.static(__dirname + '/book'))
+app.use('/card', exp.static(__dirname + '/card'))
+app.use('/image', exp.static(__dirname + '/image'))
+
 
 function getDateString(){
     let myDate = new Date()
@@ -26,6 +28,10 @@ function getDateString(){
     let month = myDate.getMonth() + 1
     let day = myDate.getDate()
     return year + '-' + month + '-' + day
+}
+
+function isValidManager(req){
+    return cookies.has(req.headers.cookie)
 }
 
 // Convert the information of a book to a single SQL insert statement
@@ -36,19 +42,18 @@ function getBookQueryString(obj){
     + obj.price + ',' + obj.total + ',' + obj.total + ')'
 }
 
-let admin_id = ''
 // main page
 app.get("/",(req, res) => {
-    admin_id = ''
+    let cookie = req.headers.cookie
+    cookies.delete(cookie)
     res.sendFile(__dirname + "/login.html")
 })
 
 // manager page(for updating books)
 app.get("/manager", function(req, res){
-    if(admin_id)
+    if(isValidManager(req))
         res.sendFile(__dirname + '/manager/manager.html')
     else res.redirect('/')
-    authority = false
 })
 
 
@@ -57,14 +62,13 @@ app.post("/managerLogin", (req,res) => {
     {
         obj = JSON.parse(data)
         let query_command = "select * from manager where id = " + "\'" + obj.id + "\'" + " and password = " + "\'" + obj.password + "\' ;"
-        admin_id = ''
         connection.query(query_command, function(err, result){
             if(err)
                 console.log(err.message)
             if(result.length > 0)
             {
                 res.send('true')
-                admin_id = obj.id
+                cookies.add(req.headers.cookie)
             }
             else res.send('false')
         })
@@ -84,7 +88,6 @@ app.post('/manager/single', function(req, res){
 
 // handle the request for upload the file to update it
 app.post('/manager/file_upload', function(req, res){
-   
     let form = new formidable.IncomingForm()
     
     form.parse(req,function(err,fields,files){
@@ -103,7 +106,7 @@ app.post('/manager/file_upload', function(req, res){
 
 // borrow page
 app.get("/borrow", function(req,res){
-    if(admin_id)
+    if(isValidManager(req))
         res.sendFile(__dirname + "/borrow/borrow.html")
     else res.redirect('/')
 })
@@ -159,6 +162,8 @@ app.post("/borrow/borrow", function(req, res){
                         res.send(err.sqlMessage)
                         console.log(err)
                     }
+                    else if(result.affectedRows == 0)
+                        res.send('No record has been deleted. Please check your input')
                     else res.send("Update completed")
                 })
             }
@@ -176,7 +181,7 @@ app.post("/borrow/borrow", function(req, res){
 })
 // The book page
 app.get('/book', function(req, res){
-    if(admin_id)
+    if(isValidManager(req))
         res.sendFile(__dirname + '/book/book.html')
     else res.redirect('/')
 })
@@ -227,7 +232,7 @@ app.post('/book/lookup', function(req, res){
 })
 // card page
 app.get('/card', function(req, res){
-    if(admin_id)
+    if(isValidManager(req))
         res.sendFile(__dirname + '/card/card.html')
     else res.redirect('/')
 })
