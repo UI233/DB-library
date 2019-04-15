@@ -8,7 +8,7 @@ let connection = mysql.createConnection({
     host : 'localhost',
     user : 'root',
     password : '121121ppxcs',
-    database : 'project',
+    database : 'library_sys',
     multipleStatements: true
 })
 let fs = require('fs')
@@ -33,12 +33,13 @@ function getBookQueryString(obj){
     let stringify = str => '\'' + str + '\''
     return 'insert into book values(' + stringify(obj.bno) + ',' + stringify(obj.category) + ','
     + stringify(obj.title) + ',' + stringify(obj.press) + ',' + obj.year + ','  + stringify(obj.author) + ','
-    + obj.price + ',' + obj.total + ',' + '0)'
+    + obj.price + ',' + obj.total + ',' + obj.total + ')'
 }
 
 let admin_id = ''
 // main page
 app.get("/",(req, res) => {
+    admin_id = ''
     res.sendFile(__dirname + "/login.html")
 })
 
@@ -89,13 +90,9 @@ app.post('/manager/file_upload', function(req, res){
     form.parse(req,function(err,fields,files){
         fs.readFile(files.uploadJSON.path,function(err, data){
             let sql = data.toString()
-
             connection.query(data.toString(), (err, result) => {
                if(err)
-               {
-                    console.log(err)
-                    res.send('Bad SQL')
-               }
+                    res.send(err.sqlMessage)
                 else res.send(JSON.stringify({
                     msg : 'Update Completed'
                 }))
@@ -137,8 +134,7 @@ app.post("/borrow/return", function(req, res){
         connection.query(update_borrow, function(err, result){
             if(err)
             {
-                res.send("Update Failed") 
-                console.log(err)
+                res.send(err.sqlMessage) 
             }
             else res.send("Update Completed")
         })
@@ -150,16 +146,19 @@ app.post("/borrow/borrow", function(req, res){
         data = JSON.parse(data)
         let stringfy = str => "\'" + str + "\'"
 
-        let query_book = 'select total from book where bno=' + stringfy(data.bno)
+        let query_book = 'select stock from book where bno=' + stringfy(data.bno)
         connection.query(query_book, function(err, result){
             if(result.length == 0)
                 res.send('Book not exist')
-            else if(result[0].total > 0){
+            else if(result[0].stock > 0){
                 let update_borrow = 'insert into borrow values('  + stringfy(data.cno) + 
                 ',' + stringfy(data.bno) + ',' + stringfy(getDateString()) + ', null,' + stringfy(admin_id) +  ')'
                 connection.query(update_borrow,function(err, result){
                     if(err)
-                        res.send("Update Failed")
+                    {
+                        res.send(err.sqlMessage)
+                        console.log(err)
+                    }
                     else res.send("Update completed")
                 })
             }
@@ -243,8 +242,7 @@ app.post('/card/add', function(req, res){
          connection.query(query, function(err, result){
             if(err)
             {
-                res.send('Update Failed')
-                console.log(err)
+                res.send(err.sqlMessage)
             }
             else res.send('Update Completed')
          })
@@ -257,9 +255,13 @@ app.post('/card/delete', function(req, res){
         let stringfy = str => "\'" + str + "\'"
         let query = 'delete from card where cno=' + stringfy(card.cno)
         connection.query(query, function(err, result){
+            console.log(result)
             if(err)
-                res.send('Update Failed')
+                res.send(err.sqlMessage)
+            else if(result.affectedRows == 0) 
+                res.send('Card does not exist')
             else res.send('Update Completed')
+
         })
     })
 })

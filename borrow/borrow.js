@@ -29,6 +29,7 @@ methods : {
         request.onreadystatechange = () => {
                 if(request.readyState == 4)
                 {
+                    alert(request.responseText)
                     location.reload(true)
                 }
             }
@@ -43,6 +44,14 @@ methods : {
         request.onreadystatechange = () => {
                 if(request.readyState == 4)
                 {
+                    try {
+                        let date = JSON.parse(request.responseText) 
+                        if(typeof(date) == 'object')
+                            alert('库存已空, 最晚归还时间:' + date.date.return_date)
+                        else alert(request.responseText)
+                    } catch (error) {
+                        alert(request.responseText)
+                    }
                     location.reload(true)
                 }
             }

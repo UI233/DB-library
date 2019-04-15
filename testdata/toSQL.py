@@ -8,7 +8,11 @@ if  __name__ == "__main__":
         print(sys.argv)
         buffer = ''
         with open(sys.argv[1],'r', encoding='utf-8') as file:
+            count = 0
             for line in file:
+                count = count + 1
+                if count == 1:
+                    continue
                 temp = line.split(',')
                 temp = [x.strip() for x in temp]
                 buffer += 'insert into book values('
@@ -17,7 +21,7 @@ if  __name__ == "__main__":
                         buffer +=  temp[i] + ','
                     else:
                         buffer += stringify(temp[i])
-                buffer += '0);\n'
+                buffer += temp[7] + ');\n'
         
         with open('testdata.sql', 'w', encoding = 'utf-8') as file:
             file.write(buffer)
