@@ -13,7 +13,8 @@ new Vue({
         author : '',
         year : '',
         press :'',
-        category : ''
+        category : '',
+        stock : ''
     },
     methods:{
         add(){
@@ -25,7 +26,8 @@ new Vue({
                 'author' : this.author,
                 'year' : this.year,
                 'press' : this.press,
-                'category' : this.category
+                'category' : this.category,
+                'stock' : this.stock
             }
 
             if(!this.bno)
@@ -34,9 +36,9 @@ new Vue({
                 return ;
             }
 
-            if(!eval(this.total) || eval(this.total) < 0)
+            if(!eval(this.total) || eval(this.total) <= 0 || !eval(this.stock) || eval(stock) <= 0)
             {
-                alert('总量必需为大于0的数字')
+                alert('总量,库存必需为大于0的数字')
                 return ;
             }
             console.log(book_data) 
@@ -51,6 +53,8 @@ new Vue({
                     this.price = ''
                     this.author = ''
                     this.category = ''
+                    this.press = ''
+                    this.stock = ''
                     alert(request.responseText)
                 }
             }

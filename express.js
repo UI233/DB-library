@@ -11,8 +11,10 @@ let connection = mysql.createConnection({
     database : 'library_sys',
     multipleStatements: true
 })
+let esp = mysql.escape
+
 let fs = require('fs')
-let cookies = new Set()
+let cookies = new Map()
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use('/manager', exp.static(__dirname + '/manager'))
@@ -30,16 +32,19 @@ function getDateString(){
     return year + '-' + month + '-' + day
 }
 
+function stringify(str){
+    return  esp(str) 
+}
+
 function isValidManager(req){
     return cookies.has(req.headers.cookie)
 }
 
 // Convert the information of a book to a single SQL insert statement
 function getBookQueryString(obj){
-    let stringify = str => '\'' + str + '\''
     return 'insert into book values(' + stringify(obj.bno) + ',' + stringify(obj.category) + ','
-    + stringify(obj.title) + ',' + stringify(obj.press) + ',' + obj.year + ','  + stringify(obj.author) + ','
-    + obj.price + ',' + obj.total + ',' + obj.total + ')'
+    + stringify(obj.title) + ',' + stringify(obj.press) + ',' + esp(obj.year) + ','  + stringify(obj.author) + ','
+    + esp(obj.price) + ',' + esp(obj.total) + ',' + esp(obj.total) + ')'
 }
 
 // main page
@@ -61,14 +66,15 @@ app.post("/managerLogin", (req,res) => {
     req.on('data', function(data)
     {
         obj = JSON.parse(data)
-        let query_command = "select * from manager where id = " + "\'" + obj.id + "\'" + " and password = " + "\'" + obj.password + "\' ;"
+        let query_command = "select * from manager where id = " + stringify(obj.id) + " and password = " + stringify(obj.password)  
+        console.log(query_command)
         connection.query(query_command, function(err, result){
             if(err)
-                console.log(err.message)
-            if(result.length > 0)
+                res.send(err.message)
+            else if(result.length > 0)
             {
                 res.send('true')
-                cookies.add(req.headers.cookie)
+                cookies.set(req.headers.cookie, obj.id)
             }
             else res.send('false')
         })
@@ -114,10 +120,9 @@ app.get("/borrow", function(req,res){
 app.post("/borrow/lookup", function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
-        let stringfy = str => "\'" + str + "\'"
         let sqlquery = "select bno, title, cno, name, type, borrow_date\
         from book natural join borrow natural join card\
-        where isnull(return_date) and cno=" + stringfy(data.id)
+        where isnull(return_date) and cno=" + stringify(data.id)
         connection.query(sqlquery, function(err, result){
             res.send(JSON.stringify({
                 returnData : result
@@ -129,16 +134,13 @@ app.post("/borrow/lookup", function(req, res){
 app.post("/borrow/return", function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
-        let stringfy = str => "\'" + str + "\'"
        
-        let update_borrow = 'update borrow set return_date = ' + stringfy(getDateString()) + 
-         'where cno=' + stringfy(data.cno) + " and bno=" + stringfy(data.bno)
-        console.log(getDateString())
+        let update_borrow = 'update borrow set return_date = ' + stringify(getDateString()) + 
+         'where cno=' + stringify(data.cno) + " and bno=" + stringify(data.bno)
         connection.query(update_borrow, function(err, result){
             if(err)
-            {
                 res.send(err.sqlMessage) 
-            }
+            else if(result.affectedRows == 0) res.send('No corresponding record')
             else res.send("Update Completed")
         })
     })
@@ -147,36 +149,46 @@ app.post("/borrow/return", function(req, res){
 app.post("/borrow/borrow", function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
-        let stringfy = str => "\'" + str + "\'"
 
-        let query_book = 'select stock from book where bno=' + stringfy(data.bno)
-        connection.query(query_book, function(err, result){
-            if(result.length == 0)
-                res.send('Book not exist')
-            else if(result[0].stock > 0){
-                let update_borrow = 'insert into borrow values('  + stringfy(data.cno) + 
-                ',' + stringfy(data.bno) + ',' + stringfy(getDateString()) + ', null,' + stringfy(admin_id) +  ')'
-                connection.query(update_borrow,function(err, result){
-                    if(err)
-                    {
-                        res.send(err.sqlMessage)
-                        console.log(err)
+        let admin_id = cookies.get(req.headers.cookie)
+        if(admin_id == undefined)
+            res.send('Invalid Manager')
+        let query_book = 'select stock from book where bno=' + stringify(data.bno)
+        let query_user = 'select * from card where cno=' + stringify(data.cno)
+        connection.query(query_user, function(err, result){
+            if(err)
+                res.send(err.sqlMessage)
+            else if(result.length == 0)
+                res.send('Card does not exist')
+            else connection.query(query_book, function(err, result){
+                    if(result.length == 0)
+                        res.send('Book does not exist')
+                    else if(result[0].stock > 0){
+                        let update_borrow = 'insert into borrow values('  + stringify(data.cno) + 
+                        ',' + stringify(data.bno) + ',' + stringify(getDateString()) + ', null,' + stringify(admin_id) +  ')'
+                        connection.query(update_borrow,function(err, result){
+                            if(err)
+                            {
+                                res.send(err.sqlMessage)
+                                console.log(err)
+                            }
+                            else if(result.affectedRows == 0)
+                                res.send('No record has been deleted. Please check your input')
+                            else res.send("Update completed")
+                        })
                     }
-                    else if(result.affectedRows == 0)
-                        res.send('No record has been deleted. Please check your input')
-                    else res.send("Update completed")
-                })
-            }
-            else{
-                let query_return = 'select return_date from borrow where bno=' + stringfy(data.bno) + ' order by return_date desc'
-                connection.query(query_return, function(err, result){
-                    res.send(JSON.stringify({
-                        date : result[0]
+                    else{
+                        let query_return = 'select return_date from borrow where bno=' + stringify(data.bno) + ' order by return_date desc'
+                        connection.query(query_return, function(err, result){
+                            res.send(JSON.stringify({
+                                date : result[0]
+                            }
+                            ))
+                        })
                     }
-                    ))
                 })
-            }
         })
+        
     })
 })
 // The book page
@@ -190,26 +202,25 @@ app.post('/book/lookup', function(req, res){
     req.on('data', function(data){
         data = JSON.parse(data)
         let sql = "select * from book";
-        let stringfy = str => "\'" + str + "\'"
         // Select those valid conditions
         if(data.category || data.press || data.title || data.price_low || data.year_low || data.year_high || data.price_high)
         {
             sql += " where "
             let condition = []
             if(data.category)
-                condition.push("category=" + stringfy(data.category))
+                condition.push("category=" + stringify(data.category))
             if(data.press)
-                condition.push("press=" + stringfy(data.press))
+                condition.push("press=" + stringify(data.press))
             if(data.title)
-                condition.push("title=" + stringfy(data.title))
+                condition.push("title=" + stringify(data.title))
             if(data.price_low)
-                condition.push("price>=" + data.price_low)
+                condition.push("price>=" + esp(data.price_low))
             if(data.price_high)
-                condition.push("price<=" + data.price_high)
+                condition.push("price<=" + esp(data.price_high))
             if(data.year_low)
-                condition.push("year>=" + data.year_low)
+                condition.push("year>=" + esp(data.year_low))
             if(data.year_high)
-                condition.push("year<=" + data.year_high)
+                condition.push("year<=" + esp(data.year_high))
 
             for(let i = 0; i < condition.length; ++i)
             {
@@ -240,9 +251,8 @@ app.get('/card', function(req, res){
 app.post('/card/add', function(req, res){
     req.on('data', function(data){
         let card = JSON.parse(data)
-        let stringfy = str => "\'" + str + "\'"
-        let query = 'insert into card values(' +stringfy(card.cno) +',' + stringfy(card.name) + ',' + stringfy(card.dept)
-         + ',' + stringfy(card.type) + ')'
+        let query = 'insert into card values(' +stringify(card.cno) +',' + stringify(card.name) + ',' + stringify(card.dept)
+         + ',' + stringify(card.type) + ')'
 
          connection.query(query, function(err, result){
             if(err)
@@ -257,8 +267,7 @@ app.post('/card/add', function(req, res){
 app.post('/card/delete', function(req, res){
     req.on('data', function(data){
         let card = JSON.parse(data)
-        let stringfy = str => "\'" + str + "\'"
-        let query = 'delete from card where cno=' + stringfy(card.cno)
+        let query = 'delete from card where cno=' + stringify(card.cno)
         connection.query(query, function(err, result){
             console.log(result)
             if(err)

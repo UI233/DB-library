@@ -5,7 +5,6 @@ def stringify(hhh : str) -> str:
 
 if  __name__ == "__main__":
     if len(sys.argv) >= 2:
-        print(sys.argv)
         buffer = ''
         with open(sys.argv[1],'r', encoding='utf-8') as file:
             count = 0
