@@ -23,7 +23,7 @@ app.use('/book', exp.static(__dirname + '/book'))
 app.use('/card', exp.static(__dirname + '/card'))
 app.use('/image', exp.static(__dirname + '/image'))
 
-
+// Convert the now date into a string in the format "yyyy-mm-dd"
 function getDateString(){
     let myDate = new Date()
     let year = myDate.getFullYear()
@@ -67,12 +67,10 @@ app.post("/managerLogin", (req,res) => {
     {
         obj = JSON.parse(data)
         let query_command = "select * from manager where id = " + stringify(obj.id) + " and password = " + stringify(obj.password)  
-        console.log(query_command)
         connection.query(query_command, function(err, result){
             if(err)
                 res.send(err.message)
-            else if(result.length > 0)
-            {
+            else if(result.length > 0){ // The input matches the information stored in database
                 res.send('true')
                 cookies.set(req.headers.cookie, obj.id)
             }
@@ -140,7 +138,8 @@ app.post("/borrow/return", function(req, res){
         connection.query(update_borrow, function(err, result){
             if(err)
                 res.send(err.sqlMessage) 
-            else if(result.affectedRows == 0) res.send('No corresponding record')
+            else if(result.affectedRows == 0) 
+                res.send('No corresponding record')
             else res.send("Update Completed")
         })
     })
@@ -164,26 +163,25 @@ app.post("/borrow/borrow", function(req, res){
                     if(result.length == 0)
                         res.send('Book does not exist')
                     else if(result[0].stock > 0){
+                        // stock is not empty, update the borrow record
                         let update_borrow = 'insert into borrow values('  + stringify(data.cno) + 
                         ',' + stringify(data.bno) + ',' + stringify(getDateString()) + ', null,' + stringify(admin_id) +  ')'
                         connection.query(update_borrow,function(err, result){
                             if(err)
-                            {
                                 res.send(err.sqlMessage)
-                                console.log(err)
-                            }
                             else if(result.affectedRows == 0)
                                 res.send('No record has been deleted. Please check your input')
                             else res.send("Update completed")
                         })
                     }
-                    else{
+                    else { // the stock is empty, return the latest return_date
                         let query_return = 'select return_date from borrow where bno=' + stringify(data.bno) + ' order by return_date desc'
                         connection.query(query_return, function(err, result){
-                            res.send(JSON.stringify({
+                            if(result.length == 0)
+                                res.send('The stock is empty but no record is found')
+                            else res.send(JSON.stringify({
                                 date : result[0]
-                            }
-                            ))
+                            }))
                         })
                     }
                 })
@@ -203,16 +201,15 @@ app.post('/book/lookup', function(req, res){
         data = JSON.parse(data)
         let sql = "select * from book";
         // Select those valid conditions
-        if(data.category || data.press || data.title || data.price_low || data.year_low || data.year_high || data.price_high)
-        {
+        if(data.category || data.press || data.title || data.price_low || data.year_low || data.year_high || data.price_high){
             sql += " where "
             let condition = []
             if(data.category)
                 condition.push("category=" + stringify(data.category))
             if(data.press)
-                condition.push("press=" + stringify(data.press))
+                condition.push("press like" + stringify("%" + data.press + "%"))
             if(data.title)
-                condition.push("title=" + stringify(data.title))
+                condition.push("title like" + stringify("%" + data.title + "%"))
             if(data.price_low)
                 condition.push("price>=" + esp(data.price_low))
             if(data.price_high)
@@ -222,19 +219,16 @@ app.post('/book/lookup', function(req, res){
             if(data.year_high)
                 condition.push("year<=" + esp(data.year_high))
 
-            for(let i = 0; i < condition.length; ++i)
-            {
+            // link the condition into single sql query
+            for(let i = 0; i < condition.length; ++i){
                 sql += condition[i]
                 if(i != condition.length - 1)
                     sql += " and "
             }
         }
 
-        sql += " order by " + data.order + ' ' + data.desc
+        sql += " order by " + data.order + ' ' + data.desc + ' limit 0,50'
         connection.query(sql, function(err, result){
-            if(result.length > 50)
-                result = result.slice(0, 50)
-
             res.send(JSON.stringify({
                 returnData : result
             }))            
@@ -248,6 +242,7 @@ app.get('/card', function(req, res){
     else res.redirect('/')
 })
 
+// add the card
 app.post('/card/add', function(req, res){
     req.on('data', function(data){
         let card = JSON.parse(data)
@@ -255,8 +250,7 @@ app.post('/card/add', function(req, res){
          + ',' + stringify(card.type) + ')'
 
          connection.query(query, function(err, result){
-            if(err)
-            {
+            if(err) {
                 res.send(err.sqlMessage)
             }
             else res.send('Update Completed')
@@ -264,6 +258,7 @@ app.post('/card/add', function(req, res){
     })
 })
 
+// delete the card
 app.post('/card/delete', function(req, res){
     req.on('data', function(data){
         let card = JSON.parse(data)
@@ -272,10 +267,9 @@ app.post('/card/delete', function(req, res){
             console.log(result)
             if(err)
                 res.send(err.sqlMessage)
-            else if(result.affectedRows == 0) 
+            else if(result.affectedRows == 0)
                 res.send('Card does not exist')
             else res.send('Update Completed')
-
         })
     })
 })

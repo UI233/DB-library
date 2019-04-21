@@ -19,6 +19,9 @@ if  __name__ == "__main__":
                     if i == 4 or i == 6 or i == 7:
                         buffer +=  temp[i] + ','
                     else:
+                        if i == 0:
+                            temp[i] = int(temp[i]) 
+                            temp[i] = str(temp[i]).zfill(3)
                         buffer += stringify(temp[i])
                 buffer += temp[7] + ');\n'
         

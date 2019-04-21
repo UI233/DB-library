@@ -8,6 +8,10 @@ new Vue({
     },
     methods:{
         add(){
+            if(!this.cno || !this.name || !this.dept){
+                alert('信息不能为空')
+                return 
+            }
             let request = new XMLHttpRequest()
             request.onreadystatechange = ()=>{
                 if(request.readyState == 4)
@@ -46,6 +50,10 @@ new Vue({
     },
     methods:{
         del(){
+            if(!this.dcno){
+                alert('信息不能为空')
+                return
+            }
             let request = new XMLHttpRequest()
             request.onreadystatechange = ()=>{
                 if(request.readyState == 4)

@@ -30,14 +30,12 @@ new Vue({
                 'stock' : this.stock
             }
 
-            if(!this.bno)
-            {
-                alert('书号不能为空')
+            if(!this.bno || !this.title || !this.price || !this.total || !this.author || !this.year || !this.press || !this.category || !this.stock) {
+                alert('信息不能为空')
                 return ;
             }
 
-            if(!eval(this.total) || eval(this.total) <= 0 || !eval(this.stock) || eval(stock) <= 0)
-            {
+            if(!eval(this.total) || eval(this.total) <= 0 || !eval(this.stock) || eval(stock) <= 0) {
                 alert('总量,库存必需为大于0的数字')
                 return ;
             }
